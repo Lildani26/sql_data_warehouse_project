@@ -1,0 +1,48 @@
+/* 
+=========================================================================================
+Creation of the database and schemas
+=========================================================================================
+
+Script purpose: 
+This script below is to create a new database called 'DW_project' in wich we will store and develop 
+the data project, before creating the database it first check wether there is already a database with the 
+same name, if that's so, then it will drop the previous table to create the new table. After that we create 
+the 3 schemas que we will use bronze, silver and gold
+
+IMPORTANT: Pls keep in mind that this script will erase all the database 'DW_project' if already exist
+to replace with this new database
+
+*/
+
+
+USE master
+GO
+
+--Drop database DW_project in case it already exist on the system
+IF EXISTS (SELECT 1 FROM sys.databases WHERE name = 'DW_project')
+BEGIN 
+	
+	ALTER DATABASE DW_project SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+	DROP DATABASE DW_project;
+END;
+GO
+
+
+--Create the 'DW_project' database
+CREATE DATABASE DW_project;
+GO
+
+USE DW_project;
+GO
+
+
+--Create Schemas for each layer 
+
+CREATE SCHEMA bronze;
+GO
+
+CREATE SCHEMA silver
+GO
+
+CREATE SCHEMA gold
+GO
