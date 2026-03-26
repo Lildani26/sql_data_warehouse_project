@@ -1,0 +1,89 @@
+/*Conociendo y analizado cual sera nuestra source y que tipos de datos manejaremos, procedemos a 
+crear las tablas en las cuales guardaremos los datos que obtengamos*/
+/*knowing and analyzing what is gonna be our source and what kind of data will be stored on the tables, we can proceed to 
+create the tables in wich we will store the data*/
+
+/* Before creating the table we use the sentence IF OBJECT_ID ('bronze.crm_customer_info', 'U') IS NOT NULL
+with this we first check in case there is a table with the same name in the database, if that so, then we first 
+delete the existing table to create the new one. We run the same command to every table
+*/
+
+--Table from CRM source for customers information
+IF OBJECT_ID ('bronze.crm_customer_info', 'U') IS NOT NULL
+	DROP TABLE bronze.crm_customer_info;
+CREATE TABLE bronze.crm_customer_info
+(
+	cust_id INT,
+	cust_key NVARCHAR(50),
+	cust_firstname NVARCHAR(50),
+	cust_lastname NVARCHAR(50),
+	cust_material_status NVARCHAR(50),
+	cust_gender NVARCHAR(50),
+	cust_create_date DATE
+);
+
+--Table from CRM source for product information
+IF OBJECT_ID ('bronze.crm_product_info', 'U') IS NOT NULL
+	DROP TABLE bronze.crm_product_info;
+CREATE TABLE bronze.crm_product_info
+(
+	product_id INT,
+	product_key NVARCHAR(50),
+	product_name NVARCHAR(50),
+	product_cost INT,
+	product_line NVARCHAR(50),
+	product_start_date DATE,
+	product_end_date DATE
+);
+
+
+--Table from CRM source for sales_orders
+IF OBJECT_ID ('bronze.crm_sales_details', 'U') IS NOT NULL
+	DROP TABLE bronze.crm_sales_details;
+CREATE TABLE bronze.crm_sales_details
+(
+	sale_order_number NVARCHAR(50),
+	sale_product_key NVARCHAR(50),
+	sale_cust_id INT,
+	sale_order_detail NVARCHAR(100),
+	sale_shipdate INT,
+	sale_duedate INT,
+	sale_sales INT,
+	sale_quantity INT,
+	sale_price INT
+
+);
+
+
+--Table from ERP source for customer information
+--CID,BDATE,GEN
+IF OBJECT_ID ('bronze.erp_customer_az12', 'U') IS NOT NULL
+	DROP TABLE bronze.erp_customer_az12;
+CREATE TABLE bronze.erp_customer_az12
+(
+	cs_id NVARCHAR(50),
+	cs_birthdate DATE,
+	cs_gender NVARCHAR(10)
+
+);
+
+--Table from ERP source for customer location information
+IF OBJECT_ID ('bronze.erp_loc_a101', 'U') IS NOT NULL
+	DROP TABLE bronze.erp_loc_a101;
+CREATE TABLE bronze.erp_loc_a101
+(
+	cus_id NVARCHAR(50),
+	country NVARCHAR(50),
+);
+
+
+--Table from ERP source for product category
+IF OBJECT_ID ('bronze.erp_px_cat_g1v2', 'U') IS NOT NULL
+	DROP TABLE bronze.erp_px_cat_g1v2;
+CREATE TABLE bronze.erp_px_cat_g1v2
+(
+	cat_id NVARCHAR(50),
+	cat_name NVARCHAR(50),
+	cat_subcategory NVARCHAR(50),
+	cat_maintenace NVARCHAR(50),
+);
