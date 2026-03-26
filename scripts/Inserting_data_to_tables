@@ -1,0 +1,175 @@
+/* ==================================================================
+		Inserting data to tables using full load: bulk insert
+===================================================================== */
+
+
+
+/* 
+
+We will use the bulk insert to load or insert all the data from a CSV file into the tables we 
+previously created.  Following an structure and adding features to optimize the performance and productivity
+	-We add some specifications on how to hadle the data to avoid that the data is inserted incorrectly:
+
+		Especifications.
+
+		FIRSTROW: to tell SQL to start adding information starting on the second row, since the first row in this CSV file is the
+		heather row, so SQL needs to skip that line
+
+		FIELDTERMINATOR: tells SQL what character will be used as a file delimiter in this case with this CSV file 
+		we will use the ',' as the file delimiter
+
+		TABLOCK: To improve the performance we will lock the table while the information is inserting
+
+	-Since the LOAD METHOD we are using is a FULL LOAD we use TRUNCATE before executing the BULK INSERT
+	And we will create an store procedure in order to be more efficient when loading the data again in the future
+
+	-Also we add a TRY - CATCH comand in case there is an error when loading the data
+
+	-We will also Track the ETL duration to identify possible bottlenecks, detect issues and improve performance
+
+	the csv files that we use to load the data will be on the docs seccion
+*/
+
+CREATE OR ALTER PROCEDURE bronze.load_bronze AS 
+BEGIN 
+	DECLARE @start_time DATETIME , @end_time DATETIME, @start_time_fl DATETIME, @end_time_fl DATETIME; --Declare varibales to know when started and end loading
+	BEGIN TRY
+		SET @start_time_fl = GETDATE();
+		PRINT '==================================================================';
+		PRINT '				Loading bronze layer...'							;
+		PRINT '==================================================================';
+
+
+		PRINT '------------------------------------------------------------------';
+		PRINT 'Loading CRM tables'
+		PRINT '------------------------------------------------------------------'
+
+		SET @start_time = GETDATE(); --Start loading
+		PRINT 'Truncating table: bronze.crm_customer_info '
+		TRUNCATE TABLE bronze.crm_customer_info;
+
+		PRINT 'Inserting Data into table: bronze.crm_customer_info'
+		BULK INSERT bronze.crm_customer_info
+		FROM 'C:\Users\elter\OneDrive\Desktop\sql-data-warehouse-project\datasets\source_crm\cust_info.csv'
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+		
+			);
+		SET @end_time = GETDATE(); --end loading, then with datediff print the amount of time that took to load
+		PRINT '>>> Load duration: ' + CAST (DATEDIFF (second, @start_time, @end_time) AS VARCHAR) + 'seconds'
+
+
+		--Next table for products
+		SET @start_time = GETDATE();
+		PRINT 'Truncating table: bronze.crm_product_info '
+		TRUNCATE TABLE  bronze.crm_product_info;
+
+		PRINT 'Inserting Data into table: bronze.crm_product_info'
+		BULK INSERT bronze.crm_product_info
+		FROM 'C:\Users\elter\OneDrive\Desktop\sql-data-warehouse-project\datasets\source_crm\prd_info.csv'
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+			);
+		SET @end_time = GETDATE();
+		PRINT '>>> Load duration: ' + CAST (DATEDIFF (second, @start_time, @end_time) AS VARCHAR) + 'seconds'
+
+
+
+		--Next table from CRM source for sales details
+		SET @start_time = GETDATE();
+		PRINT 'Truncating table: bronze.crm_sales_details '
+		TRUNCATE TABLE  bronze.crm_sales_details;
+
+		PRINT 'Inserting Data into table: bronze.crm_sales_details'
+		BULK INSERT bronze.crm_sales_details
+		FROM 'C:\Users\elter\OneDrive\Desktop\sql-data-warehouse-project\datasets\source_crm\sales_details.csv'
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+			);
+		SET @end_time = GETDATE();
+		PRINT '>>> Load duration: ' + CAST (DATEDIFF (second, @start_time, @end_time) AS VARCHAR) + 'seconds'
+
+
+
+		PRINT '------------------------------------------------------------------';
+		PRINT 'Loading ERP tables'
+		PRINT '------------------------------------------------------------------'
+
+		--Next table for Customer information but coming from  erp source
+		SET @start_time = GETDATE();
+		PRINT 'Truncating table: bronze.erp_customer_az12 '
+		TRUNCATE TABLE  bronze.erp_customer_az12;
+
+		PRINT 'Inserting Data into table: bronze.erp_customer_az12'
+		BULK INSERT bronze.erp_customer_az12
+		FROM 'C:\Users\elter\OneDrive\Desktop\sql-data-warehouse-project\datasets\source_erp\CUST_AZ12.csv'
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+			);
+		SET @end_time = GETDATE();
+		PRINT '>>> Load duration: ' + CAST (DATEDIFF (second, @start_time, @end_time) AS VARCHAR) + 'seconds'
+
+
+
+		
+		--Next table from source ERP for customers location
+		SET @start_time = GETDATE();
+		PRINT 'Truncating table: bronze.erp_location'
+		TRUNCATE TABLE  bronze.erp_location;
+
+		PRINT 'Inserting Data into table: bronze.erp_location'
+		BULK INSERT bronze.erp_location
+		FROM 'C:\Users\elter\OneDrive\Desktop\sql-data-warehouse-project\datasets\source_erp\LOC_A101.csv'
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+			);
+		SET @end_time = GETDATE();
+		PRINT '>>> Load duration: ' + CAST (DATEDIFF (second, @start_time, @end_time) AS VARCHAR) + 'seconds'
+
+
+		
+		--Last table from ERP source for products category
+		SET @start_time = GETDATE();
+		PRINT 'Truncating table: bronze.erp_location'
+		TRUNCATE TABLE bronze.erp_product_category;
+
+		PRINT 'Inserting Data into table: bronze.erp_product_category'
+		BULK INSERT bronze.erp_product_category
+		FROM 'C:\Users\elter\OneDrive\Desktop\sql-data-warehouse-project\datasets\source_erp\PX_CAT_G1V2.csv'
+		WITH (
+			FIRSTROW = 2,
+			FIELDTERMINATOR = ',',
+			TABLOCK
+			);
+
+		SET @end_time = GETDATE();
+		PRINT '>>> Load duration: ' + CAST (DATEDIFF (second, @start_time, @end_time) AS VARCHAR) + 'seconds'
+
+		SET @end_time_fl = GETDATE();
+		PRINT '=====================================';
+		PRINT 'Loading bronze layer is completed';
+		PRINT '>>> Load duration for the whole batch was : ' + CAST (DATEDIFF (second, @start_time_fl, @end_time_fl) AS VARCHAR) + 'seconds';
+		PRINT '=====================================';
+		END TRY
+		BEGIN CATCH
+			PRINT '==========================='
+			PRINT 'Error when loading the data'
+			PRINT 'Error message:' + ERROR_MESSAGE();
+			PRINT 'Error number' + CAST(ERROR_NUMBER() AS NVARCHAR);
+			PRINT 'Error number' + CAST(ERROR_STATE() AS NVARCHAR);
+			PRINT '==========================='
+
+		END CATCH
+END;
+
+EXEC bronze.load_bronze --Calling our store procedure
