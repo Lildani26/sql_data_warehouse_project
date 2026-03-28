@@ -6,7 +6,7 @@
 
 /* 
 
-We will use the bulk insert to load or insert all the data from a CSV file into the tables we 
+In the next script we will use the bulk insert to load or insert all the data from a CSV file into the tables we 
 previously created.  Following an structure and adding features to optimize the performance and productivity
 	-We add some specifications on how to hadle the data to avoid that the data is inserted incorrectly:
 
