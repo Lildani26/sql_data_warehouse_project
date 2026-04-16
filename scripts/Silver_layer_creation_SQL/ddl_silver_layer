@@ -1,0 +1,105 @@
+/*=======================================================
+	Silver Tables creation.
+=======================================================*/
+
+
+/*
+Script purpose
+With this script we will creeate the ddl for the tables on the silver layer, in order to do that we will use the same structure 
+of the bronze layer, the only change will be that we will add a metadata column call 'dwh_create_date' to get the record when
+the table was updated the last time, for this we will use a DEFAULT wich will be the GETDATE() funtion. 
+Since it's a full load, everytime we update the records it will be register of the date. 
+
+Warning:
+Just like the bronze slayer, this script will drop the tables to replace it with a new one, in case you have a table with the 
+same name please procced with caution.
+
+*/
+
+
+--Table from CRM source for customers information
+IF OBJECT_ID ('silver.crm_customer_info', 'U') IS NOT NULL
+	DROP TABLE silver.crm_customer_info;
+CREATE TABLE silver.crm_customer_info
+(
+	cust_id INT,
+	cust_key NVARCHAR(50),
+	cust_firstname NVARCHAR(50),
+	cust_lastname NVARCHAR(50),
+	cust_marital_status NVARCHAR(50),
+	cust_gender NVARCHAR(50),
+	cust_create_date DATE,
+	dwh_create_date DATETIME DEFAULT GETDATE()
+);
+
+--Table from CRM source for product information
+IF OBJECT_ID ('silver.crm_product_info', 'U') IS NOT NULL
+	DROP TABLE silver.crm_product_info;
+CREATE TABLE silver.crm_product_info
+(
+	product_id INT,
+	cat_id NVARCHAR (50),
+	product_key NVARCHAR(50),
+	product_name NVARCHAR(50),
+	product_cost INT,
+	product_line NVARCHAR(50),
+	product_start_date DATE,
+	product_end_date DATE,
+	dwh_create_date DATETIME DEFAULT GETDATE()
+);
+
+
+--Table from CRM source for sales_orders
+IF OBJECT_ID ('silver.crm_sales_details', 'U') IS NOT NULL
+	DROP TABLE silver.crm_sales_details;
+CREATE TABLE silver.crm_sales_details
+(
+	sale_order_number NVARCHAR(50),
+	sale_product_key NVARCHAR(50),
+	sale_cust_id INT,
+	sale_order_date DATE,
+	sale_shipdate DATE,
+	sale_duedate DATE,
+	sale_sales INT,
+	sale_quantity INT,
+	sale_price INT,
+	dwh_create_date DATETIME DEFAULT GETDATE()
+
+);
+
+
+--Table from ERP source for customer information
+--CID,BDATE,GEN
+IF OBJECT_ID ('silver.erp_customer_az12', 'U') IS NOT NULL
+	DROP TABLE silver.erp_customer_az12;
+CREATE TABLE silver.erp_customer_az12
+(
+	cs_id NVARCHAR(50),
+	cs_birthdate DATE,
+	cs_gender NVARCHAR(10),
+	dwh_create_date DATETIME DEFAULT GETDATE()
+
+);
+
+--Table from ERP source for customer location information
+IF OBJECT_ID ('silver.erp_location', 'U') IS NOT NULL
+	DROP TABLE silver.erp_location;
+CREATE TABLE silver.erp_location
+(
+	cus_id NVARCHAR(50),
+	country NVARCHAR(50),
+	dwh_create_date DATETIME DEFAULT GETDATE()
+);
+
+
+--Table from ERP source for product category
+IF OBJECT_ID ('silver.erp_product_category', 'U') IS NOT NULL
+	DROP TABLE silver.erp_product_category;
+CREATE TABLE silver.erp_product_category
+(
+	cat_id NVARCHAR(50),
+	cat_name NVARCHAR(50),
+	cat_subcategory NVARCHAR(50),
+	cat_maintenace NVARCHAR(50),
+	dwh_create_date DATETIME DEFAULT GETDATE()
+);
