@@ -1,0 +1,155 @@
+/* 
+==============================================================
+Quality checks
+==============================================================
+Script purpose: 
+	This script performs numerous queries to check the quality of our 
+	data on the silver layer. This checks will include queries to:
+		-Find duplicates or NULL's on the data
+		-Unwanted or blank spaces
+		-Data standarization check
+		-Data consistency
+
+Pls run this queries after loaded the silver layer to confirm data quality
+*/
+
+/*
+===========================================
+Checking silver.crm_customer_info
+===========================================
+*/
+--Checking for duplicates and nulls
+SELECT 
+cust_id ,
+COUNT(*)
+FROM silver.crm_customer_info
+GROUP BY cust_id
+HAVING COUNT (*) > 1 OR cust_id IS NULL
+
+
+--Check for unwanted spaces
+SELECT 
+cust_key
+FROM silver.crm_customer_info
+WHERE cust_key != TRIM(cust_key)
+
+--Data standarization and consistency
+SELECT DISTINCT
+cust_marital_status
+FROM silver.crm_customer_info
+
+/*
+===========================================
+Checking silver.crm_product_info
+===========================================
+*/
+
+--Check for duplicates or nulls in primary key
+--Expectation: no results 
+SELECT 
+product_id ,
+COUNT(*)
+FROM silver.crm_product_info
+GROUP BY product_id
+HAVING COUNT (*) != 1 OR product_id IS NULL
+
+--Check for unwanted spaces
+--Expectation: No results
+SELECT 
+product_name
+FROM silver.crm_product_info
+WHERE product_name != TRIM(product_name)
+
+
+--Check data standarization and consistency
+--Expectation: No results
+SELECT DISTINCT
+product_line
+FROM silver.crm_product_info
+
+--Check for invalid date order
+--Expectation: no results
+SELECT 
+*
+FROM silver.crm_product_info
+WHERE product_end_date < product_start_date;
+
+
+
+
+/*
+===========================================
+Checking silver.crm_sale_details
+===========================================
+*/
+--Check for invalid date
+--Expectation: No results
+SELECT 
+*
+FROM silver.crm_sales_details
+WHERE sale_order_date > sale_shipdate
+OR sale_order_date > sale_duedate
+
+--Check data consistency
+--Expectation: no results
+SELECT DISTINCT 
+sale_sales,
+sale_quantity,
+sale_price
+FROM silver.crm_sales_details
+WHERE sale_sales != sale_quantity * sale_price
+OR sale_sales IS NULL
+OR sale_quantity IS NULL
+OR sale_price IS NULL
+OR sale_sales <= 0
+OR sale_price <= 0
+/*
+===========================================
+Checking silver.erp_customer_az12
+===========================================
+*/
+--Identify out of range dates
+-- Expectation: Birthdays between 1920 - today
+SELECT DISTINCT  
+cs_birthdate 
+FROM silver.erp_customer_az12
+WHERE cs_birthdate < '1920-01-01'
+OR cs_birthdate > GETDATE()
+
+--Data standarization and consistency
+SELECT DISTINCT 
+cs_gender
+FROM silver.erp_customer_az12
+
+
+/*
+===========================================
+Checking silver.erp_location
+===========================================
+*/
+--Data estandarization and consistency
+
+SELECT DISTINCT 
+country
+FROM silver.erp_location
+
+
+/*
+===========================================
+Checking silver.erp_product_category
+===========================================
+*/
+--Check for unwanted spaces:
+--Expectations: No results
+
+SELECT * FROM silver.erp_product_category
+WHERE cat_name != TRIM(cat_name) 
+OR cat_subcategory != TRIM(cat_subcategory)
+OR cat_maintenace != TRIM(cat_maintenace)
+
+--Data standarization and consistency
+SELECT DISTINCT 
+cat_maintenace
+FROM silver.erp_product_category
+
+SELECT * FROM silver.crm_sales_details
