@@ -183,8 +183,8 @@ BEGIN
 
 		SET @start_time = GETDATE();
 		PRINT '-Truncating table  silver.erp_customer_az12'
-		TRUNCATE TABLE  silver.crm_sales_details;
-		PRINT '-Inserting data in table  silver.crm_sales_details'
+		TRUNCATE TABLE  silver.erp_customer_az12;
+		PRINT '-Inserting data in table  silver.erp_customer_az12'
 		INSERT INTO silver.erp_customer_az12
 		(	cs_id ,
 			cs_birthdate ,
