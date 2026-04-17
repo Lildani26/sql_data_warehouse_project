@@ -1,0 +1,91 @@
+/* 
+=========================================
+	Creating gold views
+=========================================
+This script is to create the views for the gold layer in the data warehouse
+the gold layer is the final dimension and fact tables(star schema)
+
+Each view is a combaination and integration of the silver layer.
+
+gold layer is oriented to analytics and reporting 
+*/
+
+/*
+=========================================
+	Creating view gold.dim_customers
+=========================================*/
+IF OBJECT_ID ('gold.dim_customers', 'V') IS NOT NULL
+	DROP VIEW gold.dim_customers;
+GO
+CREATE VIEW gold.dim_customers AS 
+	SELECT 
+		ROW_NUMBER () OVER (ORDER BY cust_id) AS customer_key, --Creation of surrogated key
+		ci.cust_id AS customer_id,
+		ci.cust_key AS customer_number,
+		ci.cust_firstname AS first_name,
+		ci.cust_lastname AS last_name,
+		la.country,
+		ci.cust_marital_status AS marital_status,
+		CASE 
+			WHEN ci.cust_gender != 'Unknown' THEN ci.cust_gender
+			ELSE COALESCE(cu.cs_gender, 'n/a') 
+		END AS gender,
+		cu.cs_birthdate AS birthday,
+		ci.cust_create_date AS creation_date
+	FROM silver.crm_customer_info ci
+	LEFT JOIN silver.erp_customer_az12 cu
+	ON ci.cust_key = cu.cs_id
+	LEFT JOIN silver.erp_location la
+	ON ci.cust_key = la.cus_id
+
+/*
+=========================================
+	Creating view gold.dim_products
+=========================================*/
+IF OBJECT_ID ('gold.dim_products', 'V') IS NOT NULL
+	DROP VIEW gold.dim_products;
+GO
+CREATE VIEW gold.dim_products AS 
+	SELECT  
+		ROW_NUMBER () OVER (ORDER BY product_start_date,  product_id) product_key, --surrogated key
+		pr.product_id AS product_id,
+		pr.product_key AS product_number,
+		pr.product_name,
+		pr.cat_id AS category_id,
+		pc.cat_name AS category_name,
+		pc.cat_subcategory AS subcategory,
+		pc.cat_maintenace,
+		pr.product_cost,
+		pr.product_line,
+		pr.product_start_date
+	FROM silver.crm_product_info pr
+	LEFT JOIN silver.erp_product_category pc
+	ON pr.cat_id = pc.cat_id
+	WHERE product_end_date IS NULL --Filter out historical data. 
+
+
+	/*
+=========================================
+	Creating view gold.fact_sales
+=========================================*/
+	--Data look up use surrogated key to join fact table 'sale_details' with dimension table
+IF OBJECT_ID ('gold.fact_sales', 'V') IS NOT NULL
+	DROP VIEW gold.fact_sales;
+GO
+CREATE VIEW gold.fact_sales AS 
+	SELECT 
+		sd.sale_order_number,
+		pr.product_key,
+		cu.customer_key,
+		sd.sale_order_date ,
+		sd.sale_shipdate,
+		sd.sale_duedate,
+		sd.sale_sales AS sales_amount,
+		sd.sale_quantity,
+		sd.sale_price
+	FROM silver.crm_sales_details sd
+	LEFT JOIN gold.dim_products pr
+		ON sd.sale_product_key = pr.product_number
+	LEFT JOIN [gold].[dim_customers] cu
+		ON sd.sale_cust_id = cu.customer_id
+
