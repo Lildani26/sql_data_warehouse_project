@@ -1,0 +1,85 @@
+/* 
+======================================
+gold layer, quality check
+======================================
+The purpose of the script is to perforn quality checks on the views from the gold layer
+This quality checks includes: 
+- Unique surrogate keys on each of the dimension tables
+- Referencial integrity between fact and dimention tables
+- Validations of the relationships based on the data model
+
+*/
+
+
+
+
+/*======================================
+gold.customers
+======================================*/
+--Test for duplicates when joining tables
+SELECT 
+cust_id ,
+COUNT (*)
+FROM (
+	SELECT 
+		ci.cust_id,
+		ci.cust_key,
+		ci.cust_firstname,
+		ci.cust_lastname,
+		ci.cust_marital_status,
+		ci.cust_gender,
+		ci.cust_create_date,
+		cu.cs_birthdate,
+		cu.cs_gender,
+		la.country
+	FROM silver.crm_customer_info ci
+	LEFT JOIN silver.erp_customer_az12 cu
+	ON ci.cust_key = cu.cs_id
+	LEFT JOIN silver.erp_location la
+	ON ci.cust_key = la.cus_id)t
+	GROUP BY cust_id
+	HAVING COUNT(*) > 1
+
+--Column gender repeat twice
+--Data integration
+	SELECT DISTINCT
+	
+	ci.cust_gender,
+	cu.cs_gender,
+	CASE 
+		WHEN ci.cust_gender != 'Unknown' THEN ci.cust_gender
+		ELSE COALESCE(cu.cs_gender, 'n/a') 
+	END AS gen
+FROM silver.crm_customer_info ci
+LEFT JOIN silver.erp_customer_az12 cu
+ON ci.cust_key = cu.cs_id
+LEFT JOIN silver.erp_location la
+ON ci.cust_key = la.cus_id
+ORDER BY 1,2
+
+/*======================================
+gold.dim_products
+======================================*/
+--Check for duplicates 
+--Expectations: No results
+SELECT 
+product_key,
+COUNT(*)
+FROM (
+	SELECT  
+	pr.product_id,
+	pr.cat_id,
+	pr.product_key,
+	pr.product_name,
+	pr.product_cost,
+	pr.product_line,
+	pr.product_start_date,
+	pc.cat_name,
+	pc.cat_subcategory,
+	pc.cat_maintenace
+	FROM silver.crm_product_info pr
+	LEFT JOIN silver.erp_product_category pc
+	ON pr.cat_id = pc.cat_id
+	WHERE product_end_date IS NULL)t --Filter out historical data.
+	GROUP BY product_key
+	HAVING COUNT(*) > 1
