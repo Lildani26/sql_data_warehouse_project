@@ -1,0 +1,117 @@
+/* 
+====================================================
+Product Report
+====================================================
+Purpose 
+- This report consolidates key products metrics and behaviors 
+putting it all together in a view (gold.product_report)
+
+Highlights: 
+	1. Gather essensials fields such as products name, category, subcategory and cost.
+	2. aggregate product-level metrics:
+		- total orders
+		- total sales
+		- total quantity sold
+		- total customers(unique)
+	3. Segment products by revenue to identify High-performers, Mid_range or low_performers
+	4. Calculates valuable KPIs 
+		- recency(months since last order)
+		- average order revenue(AOR)
+		- average monthly revenue
+====================================================
+*/
+
+/* 
+---------------------------------------------------------
+1) Base Query: Retrieve core columns from tables
+---------------------------------------------------------
+*/
+CREATE VIEW gold.product_report AS 
+WITH product_base AS (
+	SELECT 
+	p.product_key,
+	p.product_name,
+	p.category_id,
+	p.category_name,
+	p.subcategory,
+	p.product_cost,
+	f.sale_order_number,
+	f.sale_order_date,
+	f.sales_amount,
+	f.sale_quantity,
+	f.customer_key
+	FROM gold.fact_sales f
+	LEFT JOIN gold.dim_products p
+	ON f.product_key = p.product_key
+	WHERE sale_order_date IS NOT NULL)
+
+
+	/* 
+---------------------------------------------------------
+2) aggregate product-level metrics
+---------------------------------------------------------*/
+, product_metrics AS (
+	SELECT
+	product_key,
+	product_name,
+	category_name,
+	category_id,
+	subcategory,
+	COUNT (DISTINCT sale_order_number) total_orders,
+	SUM (sales_amount) AS total_sales,
+	SUM(sale_quantity) AS total_quantity,
+	SUM(product_cost) AS total_cost,
+	COUNT(DISTINCT customer_key) AS Customers,
+	sale_order_date,
+	MIN(sale_order_date) AS first_order_date,
+	MAX(sale_order_date) AS last_order_date,
+	DATEDIFF (MONTH, MIN (sale_order_date), MAX(sale_order_date) ) AS life_span
+	FROM product_base
+	GROUP BY product_key,
+	product_name,
+	category_name,
+	category_id,
+	subcategory,
+	sale_order_date
+)
+
+		/* 
+---------------------------------------------------------
+3) Segment products by revenue to identify High-performers, Mid_range or low_performers
+---------------------------------------------------------*/
+	SELECT 
+	product_key,
+	product_name,
+	category_name,
+	category_id,
+	subcategory,
+	total_orders,
+	total_sales,
+	total_cost,
+	CASE 
+		WHEN total_sales <= 10000 THEN 'Low performance'
+		WHEN total_sales BETWEEN 10001 AND 50000 THEN 'Medium performance'
+		WHEN total_sales >= 50000 THEN 'High performance'
+		ELSE 'No sales'
+
+	END AS performance,
+	total_quantity,
+	sale_order_date,
+	last_order_date,
+	life_span,
+	--months since last date
+	DATEDIFF (MONTH, last_order_date, GETDATE()) AS recency,
+	--AOR
+	CASE 
+		WHEN total_sales = 0 THEN total_sales --customers probably new
+		ELSE (total_sales - total_cost) / total_orders 
+	END AS avg_order_revenue,
+	-- average monthly revenue
+	CASE 
+		WHEN life_span = 0 THEN total_sales --customers probably new
+		ELSE total_sales / life_span 
+		END AS avg_montly_revenue,
+	Customers
+	FROM product_metrics
+
+
